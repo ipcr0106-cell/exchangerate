@@ -1,0 +1,12 @@
+streamlit
+pandas
+numpy
+matplotlib
+seaborn
+plotly
+
+# streamlit은 웹 애플리케이션을 쉽게 만들 수 있게 해주는 라이브러리입니다.
+# pandas는 데이터 조작 및 분석을 위한 라이브러리입니다.
+# numpy는 수치 계산을 위한 라이브러리입니다.
+# matplotlib는 데이터 시각화를 위한 라이브러리입니다.
+# seaborn은 통계적 데이터 시각화를 위한 라이브러리입니다.
