@@ -4,22 +4,36 @@ import requests
 import plotly.graph_objects as go
 from datetime import datetime
 
-# 1. 페이지 설정 (레이아웃 고정을 위해 가로 모드 사용)
-st.set_page_config(page_title="Exchange Rate Dashboard", layout="wide")
+# 1. 페이지 설정
+st.set_page_config(page_title="Fixed Exchange Dashboard", layout="wide")
 
-# 2. CSS를 이용한 전체 웹사이트 최소 너비 고정 (브라우저 크기 조절 시 요소 보호)
+# 2. CSS 강화: 브라우저 줌 조절 시에도 레이아웃 보호
 st.markdown(
     """
     <style>
-    /* 전체 컨테이너의 최소 너비를 1000px로 고정 */
+    /* 1. 전체 컨테이너 너비를 고정하여 줌 아웃 시 요소가 퍼지지 않게 함 */
     .main .block-container {
-        min-width: 1000px;
-        padding-left: 3rem;
-        padding-right: 3rem;
+        max-width: 1200px; /* 최대 너비 제한 */
+        min-width: 1000px; /* 최소 너비 고정 */
+        margin: 0 auto;    /* 중앙 정렬 */
+        padding-top: 2rem;
     }
-    /* 상단 옵션 컬럼들이 너무 붙지 않게 조정 */
+
+    /* 2. 상단 옵션 컬럼들(selectbox, slider)의 크기가 변하지 않게 고정 */
     [data-testid="column"] {
-        min-width: 200px;
+        min-width: 250px !important;
+        flex: 1 1 250px !important;
+    }
+
+    /* 3. 메트릭(증감 수치) 카드 크기 고정 */
+    [data-testid="stMetric"] {
+        width: fit-content;
+        min-width: 150px;
+    }
+    
+    /* 4. 가로 스크롤 허용 (브라우저를 아주 작게 줄였을 때 깨짐 방지) */
+    .main {
+        overflow-x: auto;
     }
     </style>
     """,
@@ -31,7 +45,7 @@ st.title("💰 글로벌 환율 변동 분석 대시보드")
 # 전체 통화 리스트
 all_currencies = ["USD", "EUR", "KRW", "JPY", "GBP", "CAD", "CNY", "HKD"]
 
-# --- 상단 옵션 배치 (최소 너비 적용됨) ---
+# --- 상단 옵션 배치 ---
 st.write("---")
 col1, col2, col3 = st.columns([1, 2, 1])
 
@@ -75,7 +89,7 @@ if target_currencies:
     df_rates = get_exchange_data(base_currency, target_currencies, year_range[0], year_range[1])
 
     if df_rates is not None and not df_rates.empty:
-        # 1. 전날 대비 환율 증감 추이 (상단 지표)
+        # 1. 전날 대비 환율 증감 추이
         st.subheader("🔔 전날 대비 실시간 환율 증감 현황")
         m_cols = st.columns(len(target_currencies))
         
@@ -105,10 +119,8 @@ if target_currencies:
         for target in target_currencies:
             if target in df_rates.columns:
                 fig.add_trace(go.Scatter(
-                    x=df_rates.index, 
-                    y=df_rates[target], 
-                    mode='lines', 
-                    name=target,
+                    x=df_rates.index, y=df_rates[target], 
+                    mode='lines', name=target,
                     line=dict(width=2),
                     hovertemplate='%{x|%Y-%m-%d}<br>환율: %{y:,.4f}'
                 ))
