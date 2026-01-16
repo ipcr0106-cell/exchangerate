@@ -1,46 +1,39 @@
 import streamlit as st
 import pandas as pd
 import requests
-import plotly.graph_objects as go
+import matplotlib.pyplot as plt
+import matplotlib.dates as mdates
+import seaborn as sns
 from datetime import datetime
 
-# 1. 페이지 설정
-st.set_page_config(page_title="Fixed Exchange Dashboard", layout="wide")
+# 1. 페이지 설정 및 레이아웃 고정 CSS
+st.set_page_config(page_title="Fixed Layout Exchange", layout="wide")
 
-# 2. CSS 강화: 브라우저 줌 조절 시에도 레이아웃 보호
 st.markdown(
     """
     <style>
-    /* 1. 전체 컨테이너 너비를 고정하여 줌 아웃 시 요소가 퍼지지 않게 함 */
-    .main .block-container {
-        max-width: 1200px; /* 최대 너비 제한 */
-        min-width: 1000px; /* 최소 너비 고정 */
-        margin: 0 auto;    /* 중앙 정렬 */
-        padding-top: 2rem;
-    }
-
-    /* 2. 상단 옵션 컬럼들(selectbox, slider)의 크기가 변하지 않게 고정 */
-    [data-testid="column"] {
-        min-width: 250px !important;
-        flex: 1 1 250px !important;
-    }
-
-    /* 3. 메트릭(증감 수치) 카드 크기 고정 */
-    [data-testid="stMetric"] {
-        width: fit-content;
-        min-width: 150px;
-    }
+    /* 전체 배경 및 가로 스크롤 허용 */
+    .main { background-color: #ffffff; overflow-x: auto !important; }
     
-    /* 4. 가로 스크롤 허용 (브라우저를 아주 작게 줄였을 때 깨짐 방지) */
-    .main {
-        overflow-x: auto;
+    /* 전체 컨테이너 너비를 1100px로 완전 박제 */
+    .main .block-container {
+        width: 1100px !important;
+        max-width: 1100px !important;
+        min-width: 1100px !important;
+        margin: 0 auto !important;
+        padding: 2rem 0 !important;
     }
+
+    /* 컬럼 및 메트릭 너비 고정 */
+    [data-testid="column"] { width: 250px !important; flex: none !important; }
+    [data-testid="stMetric"] { min-width: 180px !important; }
     </style>
     """,
     unsafe_allow_html=True
 )
 
 st.title("💰 글로벌 환율 변동 분석 대시보드")
+st.caption("Seaborn 스타일이 적용된 Matplotlib 그래프이며, 모든 요소의 크기가 고정되어 있습니다.")
 
 # 전체 통화 리스트
 all_currencies = ["USD", "EUR", "KRW", "JPY", "GBP", "CAD", "CNY", "HKD"]
@@ -89,55 +82,45 @@ if target_currencies:
     df_rates = get_exchange_data(base_currency, target_currencies, year_range[0], year_range[1])
 
     if df_rates is not None and not df_rates.empty:
-        # 1. 전날 대비 환율 증감 추이
+        # 1. 전날 대비 실시간 증감 지표
         st.subheader("🔔 전날 대비 실시간 환율 증감 현황")
         m_cols = st.columns(len(target_currencies))
         
         for i, target in enumerate(target_currencies):
-            if target in df_rates.columns:
-                series = df_rates[target].dropna()
-                current_val = series.iloc[-1]
-                prev_val = series.iloc[-2] if len(series) > 1 else current_val
-                delta = current_val - prev_val
-                
-                val_format = ".4f" if base_currency == "KRW" or current_val < 1 else ".2f"
-                
-                with m_cols[i]:
-                    st.metric(
-                        label=f"1 {base_currency} ➔ {target}", 
-                        value=f"{current_val:{val_format}}", 
-                        delta=f"{delta:{val_format}}"
-                    )
+            series = df_rates[target].dropna()
+            current_val = series.iloc[-1]
+            prev_val = series.iloc[-2] if len(series) > 1 else current_val
+            delta = current_val - prev_val
+            val_format = ".4f" if base_currency == "KRW" or current_val < 1 else ".2f"
+            
+            with m_cols[i]:
+                st.metric(label=f"1 {base_currency} ➔ {target}", value=f"{current_val:{val_format}}", delta=f"{delta:{val_format}}")
         
         st.write("---")
 
-        # 2. 연도별 환율 변동 추이 (그래프 섹션)
-        target_names = ", ".join(target_currencies)
-        st.subheader(f"📈 {year_range[0]}년~{year_range[1]}년 {base_currency} 대비 {target_names} 환율 변동 추이")
+        # 2. 연도별 환율 변동 추이 (Seaborn + Matplotlib)
+        st.subheader(f"📈 {year_range[0]}년~{year_range[1]}년 환율 변동 추이")
         
-        fig = go.Figure()
+        # Seaborn 스타일 설정
+        sns.set_theme(style="whitegrid")
+        fig, ax = plt.subplots(figsize=(12, 5))
+        
         for target in target_currencies:
-            if target in df_rates.columns:
-                fig.add_trace(go.Scatter(
-                    x=df_rates.index, y=df_rates[target], 
-                    mode='lines', name=target,
-                    line=dict(width=2),
-                    hovertemplate='%{x|%Y-%m-%d}<br>환율: %{y:,.4f}'
-                ))
+            sns.lineplot(data=df_rates, x=df_rates.index, y=target, ax=ax, label=target, linewidth=2)
 
-        fig.update_layout(
-            hovermode="x unified",
-            xaxis=dict(tickformat="%Y", dtick="M12", fixedrange=True, title="연도"),
-            yaxis=dict(fixedrange=True, title="환율"),
-            dragmode=False,
-            height=500,
-            margin=dict(l=20, r=20, t=20, b=20),
-            legend=dict(orientation="h", yanchor="bottom", y=1.1, xanchor="right", x=1)
-        )
+        # x축 설정: 연도만 표시되도록 고정
+        ax.xaxis.set_major_locator(mdates.YearLocator())
+        ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y'))
         
-        st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
+        # 그래프 세부 디자인
+        plt.xticks(rotation=0)
+        ax.set_xlabel("연도 (Year)", fontsize=10)
+        ax.set_ylabel(f"환율 가치", fontsize=10)
+        ax.legend(title="통화", loc='upper left', bbox_to_anchor=(1, 1))
+        
+        # 레이아웃 조정 및 출력
+        plt.tight_layout()
+        st.pyplot(fig)
         
     else:
         st.error("데이터를 불러오지 못했습니다.")
-else:
-    st.info("상단에서 비교할 통화를 선택해 주세요.")
