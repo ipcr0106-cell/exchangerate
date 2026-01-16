@@ -39,7 +39,6 @@ st.markdown(
 )
 
 st.title("💰 글로벌 환율 변동 분석 대시보드")
-st.caption("Plotly 엔진을 사용하여 한글 깨짐 없이 모든 요소가 중앙에 고정되어 있습니다.")
 
 # 전체 통화 리스트
 all_currencies = ["USD", "EUR", "KRW", "JPY", "GBP", "CAD", "CNY", "HKD"]
