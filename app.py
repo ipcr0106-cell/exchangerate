@@ -5,67 +5,59 @@ import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 import seaborn as sns
 from datetime import datetime
+import matplotlib.font_manager as fm
+import os
 
 # 1. 페이지 설정
 st.set_page_config(page_title="Fixed Central Dashboard", layout="wide")
 
-# 2. CSS 중앙 정렬 및 물리적 수치 고정
+# 2. 한글 폰트 설정 (Windows의 맑은 고딕 기준)
+@st.cache_resource
+def set_korean_font():
+    # Windows: Malgun Gothic, Mac: AppleGothic
+    if os.name == 'nt':  # Windows
+        plt.rc('font', family='Malgun Gothic')
+    else:  # Mac/Linux
+        plt.rc('font', family='AppleGothic')
+    # 마이너스 기호 깨짐 방지
+    plt.rcParams['axes.unicode_minus'] = False
+
+set_korean_font()
+
+# 3. CSS 중앙 정렬 및 물리적 수치 고정
 st.markdown(
     """
     <style>
-    /* 1. 배경 설정 및 가로 스크롤 허용 */
-    .main {
-        background-color: #ffffff;
-        overflow-x: auto !important;
-    }
-
-    /* 2. 최상위 컨테이너를 중앙으로 고정 */
+    .main { background-color: #ffffff; overflow-x: auto !important; }
     .main .block-container {
         width: 1100px !important;
         max-width: 1100px !important;
         min-width: 1100px !important;
-        margin: 0 auto !important;  /* 좌우 마진 auto로 중앙 정렬 */
+        margin: 0 auto !important;
         padding: 2rem 0 !important;
-        text-align: center;         /* 텍스트 요소 중앙 정렬 */
+        text-align: center;
     }
-
-    /* 3. 각 요소(타이틀, 서브헤더) 중앙 정렬 */
-    h1, h2, h3, .stMarkdown {
-        text-align: center !important;
-    }
-
-    /* 4. 상단 옵션 컬럼들 중앙 정렬 및 고정 */
+    h1, h2, h3, .stMarkdown { text-align: center !important; }
     [data-testid="column"] {
         width: 300px !important;
         flex: none !important;
         margin: 0 auto !important;
-        text-align: left; /* 입력창 내부 글자는 왼쪽 정렬 */
+        text-align: left;
     }
-
-    /* 5. 메트릭 카드 중앙 배열을 위한 설정 */
-    [data-testid="stMetricValue"] {
-        font-size: 28px !important;
-    }
-    
-    /* 6. 그래프 이미지 중앙 정렬 */
-    .stPyplot {
-        display: flex;
-        justify-content: center;
-    }
+    .stPyplot { display: flex; justify-content: center; }
     </style>
     """,
     unsafe_allow_html=True
 )
 
 st.title("💰 글로벌 환율 변동 분석 대시보드")
-st.caption("모든 요소가 중앙에 고정되어 있으며, 브라우저 크기 변화에도 위치와 크기가 유지됩니다.")
+st.caption("한글 폰트가 적용되었으며, 모든 요소가 중앙에 고정되어 있습니다.")
 
 # 전체 통화 리스트
 all_currencies = ["USD", "EUR", "KRW", "JPY", "GBP", "CAD", "CNY", "HKD"]
 
-# --- 상단 옵션 배치 (중앙 정렬된 컬럼) ---
+# --- 상단 옵션 배치 ---
 st.write("---")
-# 컬럼 비율을 조정하여 중앙 집중형으로 배치
 c1, c2, c3 = st.columns([1, 1, 1])
 
 with c1:
@@ -124,11 +116,10 @@ if target_currencies:
         
         st.write("---")
 
-        # 2. 연도별 환율 변동 추이 (Matplotlib 크기 고정 및 중앙 정렬)
+        # 2. 연도별 환율 변동 추이 (한글 적용)
         st.subheader(f"📈 {year_range[0]}년~{year_range[1]}년 환율 추이")
         
-        sns.set_theme(style="whitegrid")
-        # figsize를 고정하여 줌 조절 시에도 그래프 크기 유지
+        sns.set_theme(style="whitegrid", font="Malgun Gothic") # Seaborn 테마에도 폰트 적용
         fig, ax = plt.subplots(figsize=(10, 5), dpi=100)
         
         for target in target_currencies:
@@ -140,11 +131,9 @@ if target_currencies:
         plt.xticks(rotation=0)
         ax.set_xlabel("연도 (Year)")
         ax.set_ylabel(f"환율 가치")
-        ax.legend(loc='upper left', bbox_to_anchor=(1, 1))
+        ax.legend(title="통화", loc='upper left', bbox_to_anchor=(1, 1))
         
         plt.tight_layout()
-        
-        # use_container_width=False를 사용하여 중앙 고정 효과 극대화
         st.pyplot(fig, use_container_width=False)
         
     else:
