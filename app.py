@@ -7,43 +7,50 @@ import seaborn as sns
 from datetime import datetime
 
 # 1. 페이지 설정
-st.set_page_config(page_title="Fixed Layout Exchange", layout="wide")
+st.set_page_config(page_title="Fixed Central Dashboard", layout="wide")
 
-# 2. CSS 완전 고정 (줌 조절 시에도 요소 크기 비율 유지 및 최소 너비 강제)
+# 2. CSS 중앙 정렬 및 물리적 수치 고정
 st.markdown(
     """
     <style>
-    /* 전체 페이지에 가로 스크롤 허용 및 줌 영향 최소화 */
-    html, body, [data-testid="stAppViewContainer"] {
-        min-width: 1200px !important;
+    /* 1. 배경 설정 및 가로 스크롤 허용 */
+    .main {
+        background-color: #ffffff;
         overflow-x: auto !important;
     }
 
-    /* 메인 컨테이너를 1100px로 물리적 박제 */
+    /* 2. 최상위 컨테이너를 중앙으로 고정 */
     .main .block-container {
         width: 1100px !important;
         max-width: 1100px !important;
         min-width: 1100px !important;
-        margin: 0 auto !important;
+        margin: 0 auto !important;  /* 좌우 마진 auto로 중앙 정렬 */
         padding: 2rem 0 !important;
-        /* 브라우저 줌 조절 시에도 내부 요소의 상대적 크기 유지 노력 */
-        transform-origin: top left;
+        text-align: center;         /* 텍스트 요소 중앙 정렬 */
     }
 
-    /* 타이틀 및 텍스트 크기 고정 시도 (px 단위 강제) */
-    h1 { font-size: 40px !important; }
-    h3 { font-size: 24px !important; }
-    
-    /* 컬럼 너비 절대값 고정 */
+    /* 3. 각 요소(타이틀, 서브헤더) 중앙 정렬 */
+    h1, h2, h3, .stMarkdown {
+        text-align: center !important;
+    }
+
+    /* 4. 상단 옵션 컬럼들 중앙 정렬 및 고정 */
     [data-testid="column"] {
         width: 300px !important;
         flex: none !important;
+        margin: 0 auto !important;
+        text-align: left; /* 입력창 내부 글자는 왼쪽 정렬 */
     }
 
-    /* 메트릭 카드 고정 */
-    [data-testid="stMetric"] {
-        width: 200px !important;
-        min-width: 200px !important;
+    /* 5. 메트릭 카드 중앙 배열을 위한 설정 */
+    [data-testid="stMetricValue"] {
+        font-size: 28px !important;
+    }
+    
+    /* 6. 그래프 이미지 중앙 정렬 */
+    .stPyplot {
+        display: flex;
+        justify-content: center;
     }
     </style>
     """,
@@ -51,19 +58,20 @@ st.markdown(
 )
 
 st.title("💰 글로벌 환율 변동 분석 대시보드")
-st.caption("화면을 확대/축소해도 레이아웃 구조와 요소의 최소 크기가 고정됩니다.")
+st.caption("모든 요소가 중앙에 고정되어 있으며, 브라우저 크기 변화에도 위치와 크기가 유지됩니다.")
 
 # 전체 통화 리스트
 all_currencies = ["USD", "EUR", "KRW", "JPY", "GBP", "CAD", "CNY", "HKD"]
 
-# --- 상단 옵션 배치 ---
+# --- 상단 옵션 배치 (중앙 정렬된 컬럼) ---
 st.write("---")
-col1, col2, col3 = st.columns([1, 2, 1])
+# 컬럼 비율을 조정하여 중앙 집중형으로 배치
+c1, c2, c3 = st.columns([1, 1, 1])
 
-with col1:
+with c1:
     base_currency = st.selectbox("기준 통화 (1단위)", all_currencies, index=0)
 
-with col2:
+with c2:
     filtered_currencies = [c for c in all_currencies if c != base_currency]
     target_currencies = st.multiselect(
         "비교할 통화들",
@@ -71,7 +79,7 @@ with col2:
         default=["KRW"]
     )
 
-with col3:
+with c3:
     current_year = datetime.now().year
     year_range = st.slider("조회 연도 범위", 1999, current_year, (2015, current_year))
 
@@ -116,12 +124,12 @@ if target_currencies:
         
         st.write("---")
 
-        # 2. 연도별 환율 변동 추이 (Matplotlib 크기 고정)
+        # 2. 연도별 환율 변동 추이 (Matplotlib 크기 고정 및 중앙 정렬)
         st.subheader(f"📈 {year_range[0]}년~{year_range[1]}년 환율 추이")
         
         sns.set_theme(style="whitegrid")
-        # dpi를 고정하여 브라우저 확대 시에도 이미지 해상도와 크기 비율 유지
-        fig, ax = plt.subplots(figsize=(10, 4), dpi=100)
+        # figsize를 고정하여 줌 조절 시에도 그래프 크기 유지
+        fig, ax = plt.subplots(figsize=(10, 5), dpi=100)
         
         for target in target_currencies:
             sns.lineplot(data=df_rates, x=df_rates.index, y=target, ax=ax, label=target, linewidth=2)
@@ -131,12 +139,12 @@ if target_currencies:
         
         plt.xticks(rotation=0)
         ax.set_xlabel("연도 (Year)")
-        ax.set_ylabel(f"환율")
+        ax.set_ylabel(f"환율 가치")
         ax.legend(loc='upper left', bbox_to_anchor=(1, 1))
         
         plt.tight_layout()
         
-        # use_container_width=False로 설정하여 차트가 창 크기에 따라 늘어나지 않게 고정
+        # use_container_width=False를 사용하여 중앙 고정 효과 극대화
         st.pyplot(fig, use_container_width=False)
         
     else:
