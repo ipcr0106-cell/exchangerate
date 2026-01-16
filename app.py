@@ -6,34 +6,52 @@ import matplotlib.dates as mdates
 import seaborn as sns
 from datetime import datetime
 
-# 1. 페이지 설정 및 레이아웃 고정 CSS
+# 1. 페이지 설정
 st.set_page_config(page_title="Fixed Layout Exchange", layout="wide")
 
+# 2. CSS 완전 고정 (줌 조절 시에도 요소 크기 비율 유지 및 최소 너비 강제)
 st.markdown(
     """
     <style>
-    /* 전체 배경 및 가로 스크롤 허용 */
-    .main { background-color: #ffffff; overflow-x: auto !important; }
-    
-    /* 전체 컨테이너 너비를 1100px로 완전 박제 */
+    /* 전체 페이지에 가로 스크롤 허용 및 줌 영향 최소화 */
+    html, body, [data-testid="stAppViewContainer"] {
+        min-width: 1200px !important;
+        overflow-x: auto !important;
+    }
+
+    /* 메인 컨테이너를 1100px로 물리적 박제 */
     .main .block-container {
         width: 1100px !important;
         max-width: 1100px !important;
         min-width: 1100px !important;
         margin: 0 auto !important;
         padding: 2rem 0 !important;
+        /* 브라우저 줌 조절 시에도 내부 요소의 상대적 크기 유지 노력 */
+        transform-origin: top left;
     }
 
-    /* 컬럼 및 메트릭 너비 고정 */
-    [data-testid="column"] { width: 250px !important; flex: none !important; }
-    [data-testid="stMetric"] { min-width: 180px !important; }
+    /* 타이틀 및 텍스트 크기 고정 시도 (px 단위 강제) */
+    h1 { font-size: 40px !important; }
+    h3 { font-size: 24px !important; }
+    
+    /* 컬럼 너비 절대값 고정 */
+    [data-testid="column"] {
+        width: 300px !important;
+        flex: none !important;
+    }
+
+    /* 메트릭 카드 고정 */
+    [data-testid="stMetric"] {
+        width: 200px !important;
+        min-width: 200px !important;
+    }
     </style>
     """,
     unsafe_allow_html=True
 )
 
 st.title("💰 글로벌 환율 변동 분석 대시보드")
-st.caption("Seaborn 스타일이 적용된 Matplotlib 그래프이며, 모든 요소의 크기가 고정되어 있습니다.")
+st.caption("화면을 확대/축소해도 레이아웃 구조와 요소의 최소 크기가 고정됩니다.")
 
 # 전체 통화 리스트
 all_currencies = ["USD", "EUR", "KRW", "JPY", "GBP", "CAD", "CNY", "HKD"]
@@ -82,7 +100,7 @@ if target_currencies:
     df_rates = get_exchange_data(base_currency, target_currencies, year_range[0], year_range[1])
 
     if df_rates is not None and not df_rates.empty:
-        # 1. 전날 대비 실시간 증감 지표
+        # 1. 상단 증감 현황
         st.subheader("🔔 전날 대비 실시간 환율 증감 현황")
         m_cols = st.columns(len(target_currencies))
         
@@ -98,29 +116,28 @@ if target_currencies:
         
         st.write("---")
 
-        # 2. 연도별 환율 변동 추이 (Seaborn + Matplotlib)
-        st.subheader(f"📈 {year_range[0]}년~{year_range[1]}년 환율 변동 추이")
+        # 2. 연도별 환율 변동 추이 (Matplotlib 크기 고정)
+        st.subheader(f"📈 {year_range[0]}년~{year_range[1]}년 환율 추이")
         
-        # Seaborn 스타일 설정
         sns.set_theme(style="whitegrid")
-        fig, ax = plt.subplots(figsize=(12, 5))
+        # dpi를 고정하여 브라우저 확대 시에도 이미지 해상도와 크기 비율 유지
+        fig, ax = plt.subplots(figsize=(10, 4), dpi=100)
         
         for target in target_currencies:
             sns.lineplot(data=df_rates, x=df_rates.index, y=target, ax=ax, label=target, linewidth=2)
 
-        # x축 설정: 연도만 표시되도록 고정
         ax.xaxis.set_major_locator(mdates.YearLocator())
         ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y'))
         
-        # 그래프 세부 디자인
         plt.xticks(rotation=0)
-        ax.set_xlabel("연도 (Year)", fontsize=10)
-        ax.set_ylabel(f"환율 가치", fontsize=10)
-        ax.legend(title="통화", loc='upper left', bbox_to_anchor=(1, 1))
+        ax.set_xlabel("연도 (Year)")
+        ax.set_ylabel(f"환율")
+        ax.legend(loc='upper left', bbox_to_anchor=(1, 1))
         
-        # 레이아웃 조정 및 출력
         plt.tight_layout()
-        st.pyplot(fig)
+        
+        # use_container_width=False로 설정하여 차트가 창 크기에 따라 늘어나지 않게 고정
+        st.pyplot(fig, use_container_width=False)
         
     else:
         st.error("데이터를 불러오지 못했습니다.")
